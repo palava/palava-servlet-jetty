@@ -22,6 +22,8 @@ package de.cosmocode.palava.servlet.jetty;
 
 import com.google.inject.Binder;
 import com.google.inject.Module;
+import com.google.inject.Singleton;
+import org.eclipse.jetty.server.Server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,5 +36,6 @@ public class JettyModule implements Module {
     @Override
     public void configure(Binder binder) {
         binder.bind(Jetty.class).asEagerSingleton();
+        binder.bind(Server.class).toProvider(Jetty.class).in(Singleton.class);
     }
 }

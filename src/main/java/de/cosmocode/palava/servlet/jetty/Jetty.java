@@ -21,58 +21,64 @@
 package de.cosmocode.palava.servlet.jetty;
 
 import com.google.inject.Inject;
+import com.google.inject.Provider;
 import com.google.inject.name.Named;
 import com.google.inject.servlet.GuiceFilter;
 import de.cosmocode.palava.core.lifecycle.Disposable;
 import de.cosmocode.palava.core.lifecycle.Initializable;
 import de.cosmocode.palava.core.lifecycle.LifecycleException;
-import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.nio.SelectChannelConnector;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
 import javax.servlet.DispatcherType;
+import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.EnumSet;
 
 
 /**
  * @author Tobias Sarnowski
  */
-final class Jetty implements Initializable, Disposable {
+final class Jetty implements Initializable, Disposable, Provider<Server> {
     private static final Logger LOG = LoggerFactory.getLogger(Jetty.class);
 
     private Server jetty;
 
-    private String host;
-    private int port;
+    private URL config;
 
-    @Inject
-    public Jetty(
-            @Named(JettyConfig.HOST) String host,
-            @Named(JettyConfig.PORT) int port
-    ) {
-        this.host = host;
-        this.port = port;
+    @Inject(optional = true)
+    public void setConfig(@Named(JettyConfig.CONFIG) URL config) {
+        this.config = config;
     }
 
     @Override
     public void initialize() throws LifecycleException {
+        if (config == null) {
+            try {
+                this.config = new File("conf/jetty.xml").toURI().toURL();
+            } catch (MalformedURLException e) {
+                throw new LifecycleException(e);
+            }
+        }
+
+        // initialize jetty
         jetty = new Server();
 
-        // configure listener
-        Connector connector = new SelectChannelConnector();
-        connector.setHost(host);
-        connector.setPort(port);
-        jetty.addConnector(connector);
-
-        // configure guice filter
-        ServletContextHandler root = new ServletContextHandler(jetty, "/", ServletContextHandler.SESSIONS);
-
-        root.addFilter(GuiceFilter.class, "/*", EnumSet.allOf(DispatcherType.class));
-        root.addServlet(DefaultServlet.class, "/");
+        // configure with jetty.xml
+        final XmlConfiguration configuration;
+        try {
+            configuration = new XmlConfiguration(config);
+            configuration.configure(jetty);
+        } catch (Exception e) {
+            throw new LifecycleException(e);
+        }
 
         try {
             jetty.start();
@@ -88,6 +94,11 @@ final class Jetty implements Initializable, Disposable {
         } catch (Exception e) {
             throw new LifecycleException(e);
         }
+    }
+
+    @Override
+    public Server get() {
+        return jetty;
     }
 }
 

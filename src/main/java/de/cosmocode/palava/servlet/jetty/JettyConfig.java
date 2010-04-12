@@ -27,10 +27,6 @@ public class JettyConfig {
 
     public static final String PREFIX = "jetty.";
 
-
-    public static final String HOME = PREFIX + "home";
-
-    public static final String HOST = PREFIX + "host";
-    public static final String PORT = PREFIX + "port";
+    public static final String CONFIG = PREFIX + "config";
 
 }
