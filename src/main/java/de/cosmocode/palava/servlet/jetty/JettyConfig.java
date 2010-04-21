@@ -29,4 +29,5 @@ public class JettyConfig {
 
     public static final String CONFIG = PREFIX + "config";
 
+    public static final String PORT = PREFIX + "port";
 }

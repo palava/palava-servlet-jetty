@@ -20,6 +20,7 @@
 
 package de.cosmocode.palava.servlet.jetty;
 
+import com.google.common.collect.Lists;
 import com.google.inject.Inject;
 import com.google.inject.Provider;
 import com.google.inject.name.Named;
@@ -27,20 +28,21 @@ import com.google.inject.servlet.GuiceFilter;
 import de.cosmocode.palava.core.lifecycle.Disposable;
 import de.cosmocode.palava.core.lifecycle.Initializable;
 import de.cosmocode.palava.core.lifecycle.LifecycleException;
+import de.cosmocode.palava.servlet.Webapp;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
+import org.eclipse.jetty.server.handler.ContextHandlerCollection;
 import org.eclipse.jetty.servlet.DefaultServlet;
 import org.eclipse.jetty.servlet.ServletContextHandler;
+import org.eclipse.jetty.servlet.ServletHolder;
+import org.eclipse.jetty.webapp.WebAppContext;
 import org.eclipse.jetty.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xml.sax.SAXException;
 
-import javax.servlet.DispatcherType;
-import java.io.File;
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.EnumSet;
+import java.util.ArrayList;
+import java.util.Set;
 
 
 /**
@@ -52,32 +54,77 @@ final class Jetty implements Initializable, Disposable, Provider<Server> {
     private Server jetty;
 
     private URL config;
+    private Set<Webapp> webapps;
+    private int port;
+
+    @Inject(optional = true)
+    public void setWebapps(Set<Webapp> webapps) {
+        this.webapps = webapps;
+    }
 
     @Inject(optional = true)
     public void setConfig(@Named(JettyConfig.CONFIG) URL config) {
         this.config = config;
     }
 
+    @Inject(optional = true)
+    public void setPort(@Named(JettyConfig.PORT) int port) {
+        this.port = port;
+    }
+
     @Override
     public void initialize() throws LifecycleException {
-        if (config == null) {
-            try {
-                this.config = new File("conf/jetty.xml").toURI().toURL();
-            } catch (MalformedURLException e) {
-                throw new LifecycleException(e);
-            }
+        // initialize jetty
+        if (port >= 0) {
+            jetty = new Server(port);
+        } else {
+            jetty = new Server();
         }
 
-        // initialize jetty
-        jetty = new Server();
+        ContextHandlerCollection contexts = new ContextHandlerCollection();
+        jetty.setHandler(contexts);
+
+        ServletContextHandler root = new ServletContextHandler(contexts, "/", ServletContextHandler.SESSIONS);
+
+        ArrayList<Handler> handlers = Lists.newArrayList();
+
+        if (webapps != null) {
+            for (Webapp webapp: webapps) {
+                LOG.info("Adding webapp {}", webapp);
+
+                ServletContextHandler appctx= new ServletContextHandler(contexts, webapp.getContext(), ServletContextHandler.SESSIONS);
+
+                // add guice servlet filter
+                // http://code.google.com/p/google-guice/wiki/ServletModule
+                appctx.addFilter(GuiceFilter.class, "/*", 0);
+
+                appctx.setResourceBase(webapp.getLocation());
+
+                appctx.addServlet(DefaultServlet.class, "/");
+
+                //ServletHolder staticServlet= new ServletHolder();
+                //staticServlet.setInitParameter("dirAllowed", "false");
+                //staticServlet.setServlet(new DefaultServlet());
+                //appctx.addServlet(staticServlet, "/*");
+
+                handlers.add(appctx);
+            }
+        } else {
+            LOG.info("No programmatically added webapp to configure.");
+        }
+
+        contexts.setHandlers(handlers.toArray(new Handler[handlers.size()]));
 
         // configure with jetty.xml
-        final XmlConfiguration configuration;
-        try {
-            configuration = new XmlConfiguration(config);
-            configuration.configure(jetty);
-        } catch (Exception e) {
-            throw new LifecycleException(e);
+        if (config != null) {
+            try {
+                LOG.info("Loading configuration {}", config);
+                new XmlConfiguration(config).configure(jetty);
+            } catch (Exception e) {
+                throw new LifecycleException(e);
+            }
+        } else {
+            LOG.info("No configuration file given to load.");
         }
 
         try {
