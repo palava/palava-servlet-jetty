@@ -21,13 +21,21 @@
 package de.cosmocode.palava.servlet.jetty;
 
 /**
+ * Static constant holder class for jetty config key names.
+ * 
  * @author Tobias Sarnowski
+ * @author Willi Schoenborn
  */
-public class JettyConfig {
+public final class JettyConfig {
 
     public static final String PREFIX = "jetty.";
 
     public static final String CONFIG = PREFIX + "config";
 
     public static final String PORT = PREFIX + "port";
+    
+    private JettyConfig() {
+        
+    }
+    
 }

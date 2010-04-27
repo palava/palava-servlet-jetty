@@ -20,21 +20,25 @@
 
 package de.cosmocode.palava.servlet.jetty;
 
+import org.eclipse.jetty.server.Server;
+
 import com.google.inject.Binder;
 import com.google.inject.Module;
 import com.google.inject.Singleton;
-import org.eclipse.jetty.server.Server;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.google.inject.multibindings.Multibinder;
+
+import de.cosmocode.palava.servlet.Webapp;
 
 /**
+ * Installs {@link Jetty} as eager singleton and as a provider for {@link Server}.
+ * 
  * @author Tobias Sarnowski
  */
 public class JettyModule implements Module {
-    private static final Logger LOG = LoggerFactory.getLogger(JettyModule.class);
 
     @Override
     public void configure(Binder binder) {
+        Multibinder.newSetBinder(binder, Webapp.class);
         binder.bind(Jetty.class).asEagerSingleton();
         binder.bind(Server.class).toProvider(Jetty.class).in(Singleton.class);
     }
