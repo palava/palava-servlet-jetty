@@ -28,6 +28,7 @@ package de.cosmocode.palava.servlet.jetty;
  */
 public final class JettyConfig {
 
+    // FIXME should be ServletConfig.PREFIX + "jetty.";
     public static final String PREFIX = "jetty.";
 
     public static final String CONFIG = PREFIX + "config";
