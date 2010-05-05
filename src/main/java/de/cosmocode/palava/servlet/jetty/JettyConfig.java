@@ -20,6 +20,8 @@
 
 package de.cosmocode.palava.servlet.jetty;
 
+import de.cosmocode.palava.servlet.ServletConfig;
+
 /**
  * Static constant holder class for jetty config key names.
  * 
@@ -28,8 +30,7 @@ package de.cosmocode.palava.servlet.jetty;
  */
 public final class JettyConfig {
 
-    // FIXME should be ServletConfig.PREFIX + "jetty.";
-    public static final String PREFIX = "jetty.";
+    public static final String PREFIX = ServletConfig.PREFIX + "jetty.";
 
     public static final String CONFIG = PREFIX + "config";
 
