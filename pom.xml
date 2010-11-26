@@ -15,7 +15,7 @@
 	<packaging>jar</packaging>
 
 	<scm>
-		<developerConnection>scm:svn:https://palava.svn.cosmocode.de/palava-servlet-jetty/trunk</developerConnection>
+		<developerConnection>scm:git:git@github.com:palava/${project.artifactId}.git</developerConnection>
 	</scm>
 	<repositories>
 		<repository>
